@@ -1,0 +1,190 @@
+snippet xafor "XA for loop" b
+for(UINT32_t ${1:i}=0; $1<$2; $1++)
+  {
+    $3
+  }
+endsnippet
+
+
+snippet u "UINT32_t" 
+UINT32_t $1
+endsnippet
+
+snippet i "UINT32_t" 
+INT32_t $1
+endsnippet
+
+snippet r "UINT32_t" 
+REAL64_t $1
+endsnippet
+
+snippet title "Add a comment  title" b
+/*****************************************************
+ * ${1:Add title here}
+ ****************************************************/
+endsnippet
+
+snippet umwarn "Add an XA warning message" b
+umWarning();
+umText("$1", $2);
+umEndText();
+endsnippet
+
+snippet umerr "Add an XA error message" b
+umError();
+umText("$1", $2);
+umEndText();
+endsnippet
+
+snippet umtext "Add an XA error message" b
+umText("$1", $2);
+umEndText();
+endsnippet
+
+snippet xaif "Add an if" b
+if(${1:condition})
+  {
+    $2
+  }
+endsnippet
+
+snippet xaife "Add an if" b
+if(${1:condition})
+  {
+    $2
+  }
+else
+  {
+    $3
+  }
+endsnippet
+
+snippet xaelse "Add an if" b
+else
+  {
+    $1
+  }
+endsnippet
+
+snippet xaeli "Add an if" b
+else if(${1:condition})
+  {
+    $2
+  }
+endsnippet
+
+snippet utzero "utZero()" b
+utZero(${1:ptr}, ${2:size});
+endsnippet
+
+snippet mpmal "mpMallocN" b
+mpMallocN(${1:mem}, ${2:ptr}, ${3:type}, ${4:N});
+endsnippet
+
+snippet mpcal "mpCallocN" b
+mpCallocN(${1:mem}, ${2:ptr}, ${3:type}, ${4:N});
+endsnippet
+
+global !p
+def gen_xa_table(x, y=0):
+    col,row  = int(x), int(y)
+    idx = 1;
+    ret  = "umTable();\n"
+    ret  += "umText(\"${%d:table_header}\");\n" % idx
+    idx += 1
+
+    if col:
+        ret += "/*Table header row: %d columns*/\n" % col
+        for i in range(col):
+            ret += "umTableHeader()\n"
+            ret += "umText(\"${%d:header_col_%d}\")\n" % (idx, i)
+            idx += 1
+
+        if row:
+            for r in range(row):
+                ret += "/*Table row %d*/\n" % r
+                ret += "umTableRow()\n"
+                for i in range(col):
+                    ret += "umTableCell()\n"
+                    ret += "umText(\"${%d:col_%d_row_%d}\")\n" % (idx, i, r)
+                    idx += 1
+        else:
+            ret += "//${%d:add table row}\n" % idx
+            idx += 1
+
+    else:
+        ret += "//${%d:add table content}\n" % idx
+        idx += 1
+    ret += "umEndText();\n"
+
+    return ret
+
+def gen_xa_table_row(x):
+    col  = int(x)
+    idx, ret = 1, ""
+    ret += "/*Table row $%d*/\n" % idx
+    idx += 1
+    ret += "umTableRow()\n"
+    for i in range(col):
+        ret += "umTableCell()\n"
+        ret += "umText(\"${%d:col_%d}\")\n" % (idx, i)
+        idx += 1
+    return ret
+
+def gen_view_str(*args):
+    arg = args[1:]
+    eval(args[0]+ "(arg)")
+
+def render_view(snip):
+    # retrieving single line from current string and treat it like arguments
+    # sepecreted by whitespace
+    args = snip.buffer[snip.line].strip().split(" ")
+
+    # generate snippet view string with tabstop  embedded
+    view = eval(args[0]+"(*args[1:])")
+  
+    # erase current line
+    snip.buffer[snip.line] = ''
+  
+    # expand anonymous snippet
+    snip.expand_anon(view)
+endglobal
+
+post_jump "render_view(snip)"
+snippet "umtab(\d+)n(\d+)$" "mpTable" r
+`!p snip.rv = "gen_xa_table %s %s" % (match.group(1), match.group(2))`
+endsnippet
+
+post_jump "render_view(snip)"
+snippet "umtab(\d+)$" "mpTable" r
+`!p snip.rv = "gen_xa_table %s 0" % match.group(1)`
+endsnippet
+
+post_jump "render_view(snip)"
+snippet "umtabrow(\d+)$" "mpTableRow" r
+`!p snip.rv = "gen_xa_table_row %s" % match.group(1)`
+endsnippet
+
+snippet "(.*)%(\w)" "print format" r
+`!p 
+def pfmt(prefix, ci):
+  if ci == "u":
+    return prefix + "%\" pfmtUINT32 \""
+  elif ci == "d":
+    return prefix + "%\" pfmtINT32 \""
+  elif ci == "f":
+    return prefix + "%\" pfmtFREAL64 \""
+  elif ci == "e":
+    return prefix + "%\" pfmtEREAL64 \""
+  else:
+    return prefix + "%" + ci
+snip.rv = pfmt(match.group(1), match.group(2))`$1
+endsnippet
+
+snippet defdowhile "define do while" b
+#define ${1:def_name}(${2:def_args}) \
+do{ \
+  ${3:content}
+} while(0) 
+endsnippet
+
